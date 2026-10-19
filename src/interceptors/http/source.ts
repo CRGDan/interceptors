@@ -620,6 +620,19 @@ export class NodeHttpRequestSource extends Interceptor<HttpRequestEventMap> {
           })
         }
 
+        /**
+         * @note A socket created within a request context (e.g. inside the
+         * patched `http.request()` or `fetch()`) carries HTTP by construction.
+         * Its client may start reading long before it writes (e.g. Undici
+         * awaiting a streamed request body), so never guess it waits for
+         * the server to speak first. Non-HTTP bytes it writes still pass
+         * through via protocol detection.
+         * @see https://github.com/mswjs/interceptors/issues/862
+         */
+        if (connectionRequestContext) {
+          return
+        }
+
         rawSocket.on('newListener', onClientRead)
 
         if (
